@@ -2,7 +2,6 @@
 #define HELPER_OAUTH_H
 #include "Oauth.h"
 #include <stdbool.h>
-// #include "token.h"
 #define MAX_CHAR_SIZE 100
 
 typedef struct{
@@ -28,6 +27,8 @@ typedef struct {
 	Permissions perm;
 } File;
 
+// to be used only as the USER to give permissions
+// the server takes the permissions from the USER, from the signed file
 typedef struct {
     File *files;
     int count;
@@ -66,8 +67,6 @@ int get_user_index_by_auth_token(char *auth_token);
 void open_approvals_file(char *path);
 bool can_user_access_file(Approvals approvals, char *filename, char *op_type);
 int find_user_id_by_refresh_token(char *refresh_token);
-char *format_op_output(char *op_type);
-// client functions
 
 
 #endif

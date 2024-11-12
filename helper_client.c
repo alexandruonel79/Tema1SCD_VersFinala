@@ -11,7 +11,6 @@ InputCollection read_input_collection(char path[MAX_INPUT_SIZE])
     FILE *file = fopen(path, "r");
     if (file == NULL) {
         perror("Error opening clients.in!");
-        exit(EXIT_FAILURE);
     }
 
     InputCollection inputCollection;
@@ -20,45 +19,41 @@ InputCollection read_input_collection(char path[MAX_INPUT_SIZE])
 
     char *line = NULL;
     size_t len = 0;
-    ssize_t read;
 
-    // read line by line
-    while ((read = getline(&line, &len, file)) != -1) {
-        // Remove newline character at the end if it exists
-        if (read > 0 && line[read - 1] == '\n') {
-            line[read - 1] = '\0';
+    while (getline(&line, &len, file) != -1) {
+        // overwrite the '\n'
+        if (line[strlen(line) - 1] == '\n')
+        {
+            line[strlen(line) - 1] = '\0';
         }
 
-        // Tokenize the line by commas
         char *token = strtok(line, ",");
         if (token != NULL) {
             Input input;
 
-            // First token is the user_id
+            // get the user_id
             strncpy(input.user_id, token, sizeof(input.user_id) - 1);
             input.user_id[sizeof(input.user_id) - 1] = '\0';
             token = strtok(NULL, ",");
 
-            // Second token is the operation_type
+            // get he operation_type
             if (token != NULL) {
                 strncpy(input.operation_type, token, sizeof(input.operation_type) - 1);
                 input.operation_type[sizeof(input.operation_type) - 1] = '\0';
                 token = strtok(NULL, ",");
             }
 
-            // Third token is the argument
+            // get the argument
             if (token != NULL) {
                 strncpy(input.argument, token, sizeof(input.argument) - 1);
                 input.argument[sizeof(input.argument) - 1] = '\0';
             }
 
-            // Save the input in the collection
             inputCollection.input[inputCollection.count] = input;
             inputCollection.count++;
         }
     }
 
-    // Clean up and close file
     free(line);
     fclose(file);
 
@@ -69,12 +64,11 @@ void init_clients_info_global()
 {
     for (int i = 0; i < inputCollection.count; i++)
     {
-        // allocate memory for the clients info
         clients_info_global[i].access_token = malloc(16);
         clients_info_global[i].refresh_token = malloc(16);
         clients_info_global[i].user_id = malloc(16);
 
-        // set the values to empty
+        // initialize the values
         memcpy(clients_info_global[i].access_token, "empty", 6);
         memset(clients_info_global[i].refresh_token, 0, 16);
         memset(clients_info_global[i].user_id, 0, 16);

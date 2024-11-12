@@ -14,13 +14,14 @@ request_authorization_1_svc(request_authorization_args *argp, struct svc_req *rq
 	static request_auth_res result;
 
 	char *client_id = argp->user_id;
+	// it its not in the db, send an error back
 	if (is_user_in_db(client_id))
 	{
+		// generate the token
 		char *auth_token = generate_access_token(client_id);
-		// allocate memory for the auth_token
+		// save it in result
 		result.auth_token = malloc(strlen(auth_token) + 1);
 		result.error = malloc(MAX_CHAR_SIZE);
-
 		memcpy(result.auth_token, auth_token, strlen(auth_token) + 1);
 		memcpy(result.error, "NONE", 5);
 
@@ -35,7 +36,7 @@ request_authorization_1_svc(request_authorization_args *argp, struct svc_req *rq
 	else
 	{
 		printf("BEGIN %s AUTHZ\n", client_id);
-
+		fflush(stdout);
 		memcpy(result.error, "USER_NOT_FOUND", 15);
 	}
 
@@ -49,14 +50,13 @@ approve_request_token_1_svc(approve_request_token_args *argp, struct svc_req *rq
 
 	// get the auth token from the client
 	char *auth_token = argp->auth_token;
-	// get the permissions from the user
+	// get the permissions from the user, simulating by reading from the file
 	char *files_and_perms = simulate_user_prompt_file_permissions();
 
 	Approvals approvals = create_approvals_from_string(files_and_perms);
-	// check if the user has any permission
 	if (!user_has_any_permission(approvals))
 	{
-		// return the auth token unchanged, the data not signed
+		// return the auth token as received and not signed
 		result.signed_data.auth_token = malloc(strlen(auth_token) + 1);
 		memcpy(result.signed_data.auth_token, auth_token, strlen(auth_token) + 1);
 		result.is_signed = 0;
@@ -65,22 +65,21 @@ approve_request_token_1_svc(approve_request_token_args *argp, struct svc_req *rq
 		return &result;
 	}
 
-	// simulate the signed data
 	SignedData signed_data;
 	signed_data.auth_token = malloc(strlen(auth_token) + 1);
 	memcpy(signed_data.auth_token, auth_token, strlen(auth_token) + 1);
-	// allocate memory for the files and permissions
 	signed_data.files_and_perms = malloc(strlen(files_and_perms) * approvals.count);
 	memcpy(signed_data.files_and_perms, files_and_perms, strlen(files_and_perms) * approvals.count);
 
-	// encrypt the signed data
+	// simulate by encrypting the data
 	encrypt(&signed_data);
 
-	// simulating the signing process
 	result.signed_data = signed_data;
+	// mark as signed
 	result.is_signed = 1;
 	result.error = malloc(5);
 	memcpy(result.error, "NONE", 5);
+
 	return &result;
 }
 
@@ -89,27 +88,25 @@ request_access_token_1_svc(request_access_token_args *argp, struct svc_req *rqst
 {
 	static request_access_token_res result;
 
-	// get the user_id
 	char *user_id = argp->user_id;
 	int user_index = get_user_index(user_id);
-	// get the signed data
+
 	SignedData signed_data = argp->signed_data;
 
 	if (argp->is_signed == false)
 	{
-		// allocate memory for the error
+		// data must be signed
 		result.error = malloc(15);
 		memcpy(result.error, "REQUEST_DENIED", 15);
 		return &result;
 	}
 
-	// decrypt the signed data
+	// decrypt it, using the known server secret and user secret
 	decrypt(&signed_data);
 
 	// check if the signed data is valid
 	if (strcmp(signed_data.auth_token, (char *)tokens_global[user_index].auth_token) != 0)
 	{
-		// allocate memory for the error
 		result.error = malloc(15);
 		memcpy(result.error, "REQUEST_DENIED", 15);
 		return &result;
@@ -120,14 +117,12 @@ request_access_token_1_svc(request_access_token_args *argp, struct svc_req *rqst
 	printf("  AccessToken = %s\n", access_token);
 	fflush(stdout);
 	tokens_global[user_index].availability = availabilty_global;
-
 	tokens_global[user_index].files_permissions = create_approvals_from_string(signed_data.files_and_perms);
-
 	memcpy(tokens_global[user_index].access_token, access_token, strlen(access_token) + 1);
 
 	if (tokens_global[user_index].automatic_refresh == 1)
 	{
-		// set the refresh token to the access token
+		// generate refresh token based on the access token
 		char *refresh_token = generate_access_token(access_token);
 		memcpy(tokens_global[user_index].refresh_token, refresh_token, strlen(refresh_token) + 1);
 		printf("  RefreshToken = %s\n", refresh_token);
@@ -137,13 +132,11 @@ request_access_token_1_svc(request_access_token_args *argp, struct svc_req *rqst
 	}
 	else
 	{
-		// put garbage in the refresh token
-		// char *refresh_token = "refresh_token";
+		// set the refresh token to empty because the user did not select auto refresh
 		char *refresh_token = "empty";
 		result.refresh_token = malloc(strlen(refresh_token) + 1);
 		memcpy(result.refresh_token, refresh_token, strlen(refresh_token) + 1);
 	}
-	// allocate memory for the access token, refresh token and error
 	result.access_token = malloc(strlen(access_token) + 1);
 	result.error = malloc(5);
 
@@ -173,7 +166,7 @@ validate_delegated_action_1_svc(validate_delegated_action_args *argp, struct svc
 		fflush(stdout);
 		return &result;
 	}
-	// search for the token entry
+	// check if the token exists
 	int index = find_user_id_by_access_token(access_token);
 	if (index == -1)
 	{
@@ -197,26 +190,25 @@ validate_delegated_action_1_svc(validate_delegated_action_args *argp, struct svc
 	// check if the file is available in the db
 	if (!exists_resource(filename))
 	{
-		// printf("File does not exist\n");
 		result = malloc(19);
 		memcpy(result, "RESOURCE_NOT_FOUND", 19);
-		printf("DENY (%s,%s,%s,%d)\n", op_type, filename, tokens_global[index].access_token, tokens_global[index].availability);
+		printf("DENY (%s,%s,%s,%d)\n", op_type, filename, (char *)tokens_global[index].access_token, tokens_global[index].availability);
 		fflush(stdout);
 		return &result;
 	}
-	// check if the user has the permissions to access that file
+
 	Approvals approvals = tokens_global[index].files_permissions;
 
 	if (!can_user_access_file(approvals, filename, op_type))
 	{
-		printf("DENY (%s,%s,%s,%d)\n", op_type, filename, tokens_global[index].access_token, tokens_global[index].availability);
+		printf("DENY (%s,%s,%s,%d)\n", op_type, filename, (char *)tokens_global[index].access_token, tokens_global[index].availability);
 		fflush(stdout);
 		result = malloc(24);
 		memcpy(result, "OPERATION_NOT_PERMITTED", 24);
 		return &result;
 	}
 
-	printf("PERMIT (%s,%s,%s,%d)\n", op_type, filename, tokens_global[index].access_token, tokens_global[index].availability);
+	printf("PERMIT (%s,%s,%s,%d)\n", op_type, filename, (char *)tokens_global[index].access_token, tokens_global[index].availability);
 	fflush(stdout);
 	result = malloc(19);
 	memcpy(result, "PERMISSION_GRANTED", 19);
@@ -230,7 +222,7 @@ refresh_access_token_1_svc(refresh_access_token_args *argp, struct svc_req *rqst
 	static refresh_access_token_res result;
 
 	int index = find_user_id_by_refresh_token(argp->refresh_token);
-
+	// cannot find user, then the refresh token is invalid
 	if (index == -1)
 	{
 		result.error = malloc(22);
@@ -246,7 +238,6 @@ refresh_access_token_1_svc(refresh_access_token_args *argp, struct svc_req *rqst
 	memcpy(tokens_global[index].refresh_token, refresh_token, strlen(refresh_token) + 1);
 	tokens_global[index].availability = availabilty_global;
 
-	// allocate memory for the access token, refresh token and error
 	result.access_token = malloc(strlen(access_token) + 1);
 	result.refresh_token = malloc(strlen(refresh_token) + 1);
 	result.error = malloc(5);

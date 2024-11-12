@@ -100,25 +100,12 @@ int main(int argc, char **argv)
 	}
 
 	set_initial_tokens_empty();
-
 	users_global = read_users(argv[1]);
 	resources_global = read_resources(argv[2]);
-	// debug print resources global
-	// for (int i = 0; i < resources_global.count; i++){
-	// 	for (int j = 0; j < strlen(resources_global.filename[i]); j++){
-	// 		printf("Filename[%d] char: '%c' ASCII: %d\n", j, resources_global.filename[i][j], resources_global.filename[i][j]);
-	// 	}
-	// }
 	approvals_path = argv[3];
 	open_approvals_file(approvals_path);
 	availabilty_global = atoi(argv[4]);
-	// printf("availability: %d\n", availabilty_global);
 
-	// print all resources
-	// for (int i = 0; i < resources_global.count; i++)
-	// {
-	// 	printf("Resource %d: %s\n", i, resources_global.filename[i]);
-	// }
 	register SVCXPRT *transp;
 
 	pmap_unset(AUTH_PROG, OAUTH);

@@ -21,7 +21,6 @@ Resources read_resources(char path[MAX_CHAR_SIZE])
     int n;
     char str[MAX_CHAR_SIZE];
 
-    // Open the file in read mode
     file = fopen(path, "r");
     if (file == NULL)
     {
@@ -29,42 +28,25 @@ Resources read_resources(char path[MAX_CHAR_SIZE])
     }
 
     Resources resources;
-
-    // Read the first number (n) from the first line
-    if (fscanf(file, "%d", &n) != 1)
-    {
-        printf("Error reading the number of resources from resources.db!\n");
-        fclose(file);
-    }
-
+    fscanf(file, "%d", &n);
     resources.count = n;
     // read the last \n after scanf
     fgets(str, sizeof(str), file);
-    // Read the next n strings
-    for (int i = 0; i < n; i++)
+    // read the 'n' next strings
+    for (int i = 0; i < resources.count; i++)
     {
-        if (fgets(str, sizeof(str), file) != NULL)
-        {
-            // Remove the newline character by replacing it with '\0'
-            int len = strlen(str);
-            if (len > 0 && str[len - 1] == '\n')
-            {
-                str[len - 1] = '\0';
-            }
+        fgets(str, sizeof(str), file);
 
-            // printf("String %d: %s\n", i + 1, str);
-            // save the string in the file
-            strncpy(resources.filename[i], str, strlen(str));
-        }
-        else
+        // overwrite the '\n'
+        if (str[strlen(str) - 1] == '\n')
         {
-            printf("Error reading string %d\n", i + 1);
+            str[strlen(str) - 1] = '\0';
         }
+
+        strncpy(resources.filename[i], str, strlen(str));
     }
 
-    // Close the file
     fclose(file);
-
     return resources;
 }
 
@@ -74,7 +56,6 @@ Users read_users(char path[MAX_CHAR_SIZE])
     int n;
     char str[MAX_CHAR_SIZE];
 
-    // Open the file in read mode
     file = fopen(path, "r");
     if (file == NULL)
     {
@@ -83,43 +64,24 @@ Users read_users(char path[MAX_CHAR_SIZE])
 
     Users users;
 
-    // Read the first number (n) from the first line
-    if (fscanf(file, "%d", &n) != 1)
-    {
-        printf("Error reading the number of user_ids from userIDS.db!\n");
-        fclose(file);
-    }
-
+    fscanf(file, "%d", &n);
     users.count = n;
     // read the last \n after scanf
     fgets(str, sizeof(str), file);
-    // Read the next n strings
-    for (int i = 0; i < n; i++)
+    // read the 'n' next strings
+    for (int i = 0; i < users.count; i++)
     {
-        if (fgets(str, sizeof(str), file) != NULL)
-        {
-            // Remove the newline character by replacing it with '\0'
-            int len = strlen(str);
-            if (len > 0 && str[len - 1] == '\n')
-            {
-                str[len - 1] = '\0';
-            }
+        fgets(str, sizeof(str), file);
 
-            // printf("String %d: %s\n", i + 1, str);
-            // save the string in the file
-            strncpy(users.user_id[i], str, strlen(str));
-        }
-        else
+        // overwrite the '\n'
+        if (str[strlen(str) - 1] == '\n')
         {
-            printf("Error reading string %d\n", i + 1);
+            str[strlen(str) - 1] = '\0';
         }
 
-        // users.auth_token[i][0] = '\0';
-        // users.refresh_token[i][0] = '\0';
-        // users.access_token[i][0] = '\0';
+        strncpy(users.user_id[i], str, strlen(str));
     }
 
-    // Close the file
     fclose(file);
 
     return users;
@@ -143,11 +105,10 @@ Approvals create_approvals_from_string(char *files_and_perms)
     char *files_and_perms_copy = malloc(strlen(files_and_perms) + 1);
     strncpy(files_and_perms_copy, files_and_perms, strlen(files_and_perms) + 1);
 
-    // printf("In create app the string is %s\n", files_and_perms_copy);
     Approvals approvals;
     approvals.files = malloc(sizeof(File) * MAX_CHAR_SIZE);
     int count = 0;
-    // use strtok to get all tokens
+    // separate using strtok
     char *token = strtok(files_and_perms_copy, ",");
     while (token != NULL)
     {
@@ -157,13 +118,11 @@ Approvals create_approvals_from_string(char *files_and_perms)
         file.perm.modify = 0;
         file.perm.execute = 0;
         file.perm.delete = 0;
-        // first is the filename
-        // printf("Filename: %s\n", token);
+        // first is the name
         file.name = malloc(strlen(token) + 1);
         strncpy(file.name, token, strlen(token) + 1);
         token = strtok(NULL, ",");
         // second are permissions
-        // printf("Permissions: %s\n", token);
         // create a copy of the token
         char *perm = malloc(strlen(token) + 1);
         strncpy(perm, token, strlen(token) + 1);
@@ -193,21 +152,12 @@ Approvals create_approvals_from_string(char *files_and_perms)
         }
         token = strtok(NULL, ",");
         // save the file in the approvals
-        // printf("stored\n");
         approvals.files[count] = file;
         count += 1;
     }
 
     approvals.count = count;
 
-    // Close the file
-    // fclose(file);
-    // print all approvals
-    // for (int i = 0; i < approvals.count; i++)
-    // {
-    //     printf("OUT = Filename: %s\n", approvals.file.file_val[i].name);
-    //     printf("OUT = Permissions: %d %d %d %d %d\n", approvals.file.file_val[i].perm.read, approvals.file.file_val[i].perm.insert, approvals.file.file_val[i].perm.modify, approvals.file.file_val[i].perm.execute, approvals.file.file_val[i].perm.delete);
-    // }
     return approvals;
 }
 
@@ -239,15 +189,12 @@ void set_initial_tokens_empty()
 {
     for (int i = 0; i < users_global.count; i++)
     {
-        // set the tokens to empty '\0'
         memset(tokens_global[i].auth_token, 0, sizeof(tokens_global[i].auth_token));
         memset(tokens_global[i].refresh_token, 0, sizeof(tokens_global[i].refresh_token));
         memset(tokens_global[i].access_token, 0, sizeof(tokens_global[i].access_token));
-        // and the permissions to 0
-        // tokens_global[i].availability = -1;
+        tokens_global[i].availability = -1;
         tokens_global[i].automatic_refresh = 0;
         tokens_global[i].files_permissions.count = 0;
-        // tokens_global[i].files_permissions.file.file_val = malloc(sizeof(File) * MAX_CHAR_SIZE);
     }
 }
 
@@ -279,9 +226,6 @@ bool exists_resource(char *filename)
 {
     for (int i = 0; i < resources_global.count; i++)
     {
-        // debug print
-        // printf("Comparing %s with %s\n", resources_global.filename[i], filename);
-        /// TODO CHESTIE DUBIOASA, NU MI DAU SEAMA MOMENTAN
         if (strncmp(resources_global.filename[i], filename, strlen(resources_global.filename[i])) == 0)
         {
             return true;
@@ -290,27 +234,19 @@ bool exists_resource(char *filename)
     return false;
 }
 
-// Simple function to alter auth_token by shifting each character
 void encrypt(SignedData *data)
 {
-    if (data && data->auth_token)
+    for (int i = 0; i < strlen(data->auth_token); i++)
     {
-        for (size_t i = 0; i < strlen(data->auth_token); i++)
-        {
-            data->auth_token[i] += 5;
-        }
+        data->auth_token[i] += 1;
     }
 }
 
-// Function to reverse the alteration by shifting characters back
 void decrypt(SignedData *data)
 {
-    if (data && data->auth_token)
+    for (int i = 0; i < strlen(data->auth_token); i++)
     {
-        for (size_t i = 0; i < strlen(data->auth_token); i++)
-        {
-            data->auth_token[i] -= 5;
-        }
+        data->auth_token[i] -= 1;
     }
 }
 
@@ -328,7 +264,6 @@ int get_user_index_by_auth_token(char *auth_token)
 
 void open_approvals_file(char *path)
 {
-    // Open the file in read mode
     approvals_file_ptr = fopen(path, "r");
     if (approvals_file_ptr == NULL)
     {
@@ -338,29 +273,8 @@ void open_approvals_file(char *path)
 
 bool can_user_access_file(Approvals approvals, char *filename, char *op_type)
 {
-    // debug printf
-    // printf("Checking if user can access file %s with op_type %s\n", filename, op_type);
-    // // printf approvals
-    // for (int i = 0; i < approvals.count; i++)
-    // {
-    //     printf("File %s\n", approvals.files[i].name);
-    //     printf("Permissions %d %d %d %d %d\n", approvals.files[i].perm.read, approvals.files[i].perm.insert, approvals.files[i].perm.modify, approvals.files[i].perm.execute, approvals.files[i].perm.delete);
-    // }
-
     for (int i = 0; i < approvals.count; i++)
     {
-
-        // debug strcmp and print strcmp result
-        // printf("Comparing %s with %s and strcmp res is %d\n", approvals.files[i].name, filename, strcmp(approvals.files[i].name, filename));
-        // printf("Comparing '%s' with '%s'\n", approvals.files[i].name, filename);
-        // for (int j = 0; j < strlen(approvals.files[i].name); j++)
-        // {
-        //     printf("Approvals file[%d] char: '%c' ASCII: %d\n", j, approvals.files[i].name[j], approvals.files[i].name[j]);
-        // }
-        // for (int j = 0; j < strlen(filename); j++)
-        // {
-        //     printf("Filename[%d] char: '%c' ASCII: %d\n", j, filename[j], filename[j]);
-        // }
 
         if (strcmp(approvals.files[i].name, filename) == 0)
         {
@@ -387,10 +301,12 @@ bool can_user_access_file(Approvals approvals, char *filename, char *op_type)
             }
         }
     }
+
     return false;
 }
 
-int find_user_id_by_refresh_token(char *refresh_token){
+int find_user_id_by_refresh_token(char *refresh_token)
+{
     for (int i = 0; i < users_global.count; i++)
     {
         if (strcmp((char *)tokens_global[i].refresh_token, refresh_token) == 0)
@@ -399,29 +315,4 @@ int find_user_id_by_refresh_token(char *refresh_token){
         }
     }
     return -1;
-}
-
-char *format_op_output(char *op_type){
-    if (strcmp(op_type, "R") == 0)
-    {
-        return "READ";
-    }
-    else if (strcmp(op_type, "I") == 0)
-    {
-        return "INSERT";
-    }
-    else if (strcmp(op_type, "X") == 0)
-    {
-        return "EXECUTE";
-    }
-    else if (strcmp(op_type, "D") == 0)
-    {
-        return "DELETE";
-    }
-    else if (strcmp(op_type, "M") == 0)
-    {
-        return "MODIFY";
-    }
-
-    return "ERROR";
 }

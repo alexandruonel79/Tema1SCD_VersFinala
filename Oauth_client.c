@@ -31,7 +31,6 @@ void auth_prog_1(char *host)
 	}
 #endif /* DEBUG */
 
-	// set the tokens to empty
 	init_clients_info_global();
 	// go through all the inputs and parse them
 	for (int i = 0; i < inputCollection.count; i++)
@@ -75,7 +74,7 @@ void auth_prog_1(char *host)
 				{
 					clnt_perror(clnt, "request access token call failed");
 				}
-				/// no errors, the server verified the signature and its good
+				// no errors, the server verified the signature and its good
 				// received the access token
 				if (strcmp(result_1->error, "NONE") == 0)
 				{
@@ -126,7 +125,7 @@ void auth_prog_1(char *host)
 		}
 		else
 		{
-			// requested to do an operation on a file
+			// requested to do an action on a file
 			validate_delegated_action_1_arg.op_type = calloc(strlen(inputCollection.input[i].operation_type) + 1, sizeof(char));
 			validate_delegated_action_1_arg.filename = calloc(strlen(inputCollection.input[i].argument) + 1, sizeof(char));
 
@@ -167,6 +166,7 @@ void auth_prog_1(char *host)
 
 				if (strncmp(result_5->error, "NONE", 4) == 0)
 				{
+					// if it worked, then save the new tokens and the availability
 					memcpy(clients_info_global[user_index].access_token, result_5->access_token, strlen(result_5->access_token) + 1);
 					memcpy(clients_info_global[user_index].refresh_token, result_5->refresh_token, strlen(result_5->refresh_token) + 1);
 					clients_info_global[user_index].availability = result_5->availability;
@@ -177,7 +177,7 @@ void auth_prog_1(char *host)
 					continue;
 				}
 			}
-
+			// ready to call the validation function
 			validate_delegated_action_1_arg.access_token = malloc(strlen(clients_info_global[user_index].access_token) + 1);
 			memcpy(validate_delegated_action_1_arg.op_type, inputCollection.input[i].operation_type, strlen(inputCollection.input[i].operation_type) + 1);
 			memcpy(validate_delegated_action_1_arg.filename, inputCollection.input[i].argument, strlen(inputCollection.input[i].argument) + 1);
@@ -188,7 +188,7 @@ void auth_prog_1(char *host)
 			{
 				clnt_perror(clnt, "validate delegated action call failed");
 			}
-
+			// finally, get the response of the server based on our action and permissions
 			printf("%s\n", *result_4);
 		}
 	}
